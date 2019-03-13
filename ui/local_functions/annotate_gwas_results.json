@@ -1,0 +1,16 @@
+{
+	"name" : "Annotate GWAS Result",
+	"short_description" : "Annotate SNPs from GWAS results.",
+	"long_description" : "Locate genes in proximity to SNPs identified as significantly related to a phenotype through association study.",
+	"tags" : {
+		"categories" : ["Annotation", "SNPs"],
+		"input": {
+			"file_types": [],
+			"kb_types": []
+		},
+		"output": {
+			"file_types": [],
+			"kb_types": []
+		}
+	}
+}
