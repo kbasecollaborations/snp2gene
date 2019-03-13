@@ -4,6 +4,8 @@ import logging
 import os
 
 from installed_clients.KBaseReportClient import KBaseReport
+
+from snp2gene.Utils.GFFUtils import GFFUtils
 #END_HEADER
 
 
@@ -33,13 +35,13 @@ class snp2gene:
     # be found
     def __init__(self, config):
         #BEGIN_CONSTRUCTOR
-        self.callback_url = os.environ['SDK_CALLBACK_URL']
+        self.config = config
+        self.config['callback_url'] = os.environ['SDK_CALLBACK_URL']
         self.shared_folder = config['scratch']
         logging.basicConfig(format='%(created)s %(levelname)s: %(message)s',
                             level=logging.INFO)
         #END_CONSTRUCTOR
         pass
-
 
     def annotate_gwas_results(self, ctx, params):
         """
@@ -64,6 +66,10 @@ class snp2gene:
         # ctx is the context object
         # return variables are: output
         #BEGIN annotate_gwas_results
+
+        gene_list = GFFUtils(self.config).annotate_GWAS_results(params['genome_obj'], params['assoc_obj'])
+
+        output = {'snp_to_gene_list': '/path/to/snptogene/list'}
         #END annotate_gwas_results
 
         # At some point might do deeper type checking...

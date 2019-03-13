@@ -63,5 +63,8 @@ class snp2geneTest(unittest.TestCase):
         #
         # Check returned data with
         # self.assertEqual(ret[...], ...) or other unittest methods
-        ret = self.serviceImpl.run_snp2gene(self.ctx, {'workspace_name': self.wsName,
-                                                             'parameter_1': 'Hello World!'})
+        ret = self.serviceImpl.annotate_gwas_results(self.ctx, {
+            'workspace_name': 'rmr:narrative_1552501344207',
+            'assoc_obj': '26255/3/1',
+            'genome_obj': '26255/2/1'
+        })
