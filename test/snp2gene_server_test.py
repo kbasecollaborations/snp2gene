@@ -65,6 +65,11 @@ class snp2geneTest(unittest.TestCase):
         # self.assertEqual(ret[...], ...) or other unittest methods
         ret = self.serviceImpl.annotate_gwas_results(self.ctx, {
             'workspace_name': 'rmr:narrative_1552501344207',
-            'assoc_obj': '26255/3/1',
-            'genome_obj': '26255/2/1'
+            # Populus v3.1
+            #'assoc_obj': '26255/3/1',
+            #'genome_obj': '25404/11/1'
+
+            # A. Thaliana TAIR10
+            'assoc_obj': '25404/30/1',
+            'genome_obj': '25404/2/1'
         })

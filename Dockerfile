@@ -9,6 +9,7 @@ MAINTAINER KBase Developer
 RUN apt-get update \
     && apt-get install -y zlib1g-dev \
     && apt-get install -y gcc \
+	&& apt-get install -y tabix \
 	&& apt-get install -y vim
 
 RUN pip install --upgrade pip \
