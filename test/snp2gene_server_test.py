@@ -70,6 +70,6 @@ class snp2geneTest(unittest.TestCase):
             #'genome_obj': '25404/11/1'
 
             # A. Thaliana TAIR10
-            'assoc_obj': '25404/30/1',
-            'genome_obj': '25404/2/1'
+            'genome_obj': '25404/2/1',
+            'gwas_result_file': '/kb/module/test/sample_data/sample_gwas_results.tsv'
         })

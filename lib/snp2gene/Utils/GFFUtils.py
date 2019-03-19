@@ -1,10 +1,9 @@
 import os
 import subprocess
-import json
+import shutil
 import csv
 from pprint import pprint as pp
 from installed_clients.DataFileUtilClient import DataFileUtil
-from installed_clients.GenomeFileUtilClient import GenomeFileUtil
 from installed_clients.GenomeSearchUtilClient import GenomeSearchUtil
 
 
@@ -35,23 +34,18 @@ class GFFUtils:
             os.mkdir(self.GFF_dir)
 
         self.dfu = DataFileUtil(self.callback_url)
-        self.gfu = GenomeFileUtil(self.callback_url)
         self.gsu = GenomeSearchUtil(self.callback_url)
 
     def _prep_gff(self, gff_file):
         outfile = os.path.join(self.shared_folder, 'GFF', 'out.gff')
         sortcmd = f'(grep ^"#"  {gff_file}; grep -v ^"#" {gff_file} | sort -k1,1 -k4,4n)'
-
         with open(outfile, 'w') as o:
             p = subprocess.Popen(sortcmd, shell=True, stdout=o)
             p.wait()
             o.close()
-
         bgzip = subprocess.Popen(['bgzip', 'out.gff'], cwd=os.path.join(self.shared_folder, 'GFF'))
         bgzip.wait()
-
         outfile += '.gz'
-
         return outfile
 
     def _construct_gff_from_json(self, json, gff_file_path):
@@ -76,7 +70,6 @@ class GFFUtils:
                         metainfo = metainfo[:-1]  # remove trailing ;
                         metainfo += ')'
                     """
-
                     constructed_gff_line = str(feature['location'][0]['contig_id']) + '\t' + \
                                            'KBase\tgene\t' + \
                                            str(feature['location'][0]['start']) + '\t' + \
@@ -85,38 +78,36 @@ class GFFUtils:
                                            metainfo + '\n'
                     f.write(constructed_gff_line)
             f.close()
-
         if os.path.exists(gff_file_path):
             return gff_file_path
         else:
             raise FileNotFoundError('Unable to create GFF file form genome JSON.')
 
-    def annotate_GWAS_results(self, genome_ref, association_ref):
-        """
-        assoc_results = self.dfu.get_objects({'object_refs': [association_ref]})['data'][0]['data'][
-            'association_details']
+    def _process_tabix_results(self, queryresult):
+        queryinfo = queryresult[7].split(';')
+        if len(queryinfo) >= 2:
+            extentsion = [clean_tsv_data(queryinfo[0][3:]), "NA", clean_tsv_data(queryinfo[1][9:])]
+        elif len(queryinfo) is 1:
+            extentsion = [clean_tsv_data(queryinfo[0][3:]), "NA", "NA"]
+        else:
+            extentsion = ['NA', 'NA', 'NA']
+        return extentsion
 
-            
+    def annotate_GWAS_results(self, genome_ref, gwas_results_file):
         feature_num = self.gsu.search({'ref': genome_ref})['num_found']
         genome_features = self.gsu.search({
             'ref': genome_ref,
             'limit': feature_num,
             'sort_by': [['feature_id', True]]
         })['features']
-        """
-        with open('/kb/module/work/features.json', 'r') as h:
-            genome_features = json.load(h)
 
         gff_file = os.path.join(self.GFF_dir, 'constructed.gff')
         constructed_gff = self._construct_gff_from_json(genome_features, gff_file)
         sorted_gff = self._prep_gff(constructed_gff)
-        print(sorted_gff)
         tabix_index(sorted_gff)
 
-        gwas_results_file = '/kb/module/work/snpdataFLC.tsv'
         new_results_file = []
 
-        # first pass fill in snps that reside in genes
         with open(gwas_results_file, 'r') as gwasresults:
             gwasreader = csv.reader(gwasresults, delimiter='\t')
             next(gwasreader)  # skip headers
@@ -124,42 +115,32 @@ class GFFUtils:
                 tb = tabix_query(sorted_gff, 'Chr'+result[1], int(result[2]), int(result[2]))
                 tbquery = next(tb, None) # if there is no first object in generator, set to None
                 if tbquery is not None:
-                    queryinfo = tbquery[7].split(';')
-                    if len(queryinfo) >= 2:
-                        result.extend([clean_tsv_data(queryinfo[0][3:]), "NA",
-                                       clean_tsv_data(queryinfo[1][9:])])
-                    elif len(queryinfo) == 1:
-                        result.extend([clean_tsv_data(queryinfo[0][3:]), "NA", "NA"])
-                    else:
-                        # csv addition columns are GENEID NEIGHBORGENE FUNCTION
-                        result.extend(['NA', 'NA', 'NA'])
+                    query_result = self._process_tabix_results(tbquery)
+                    result.extend(query_result)
                 else:
                     tb_neighbors = tabix_query(sorted_gff, 'Chr' + result[1], int(result[2])-1000,
                                                 int(result[2])+1000)
                     tbquery_neighbors = next(tb_neighbors, None)
-
                     if tbquery_neighbors is not None:
-                        queryinfo_neighbor = tbquery_neighbors[7].split(';')
-                        if len(queryinfo_neighbor) >= 2:
-                            result.extend([clean_tsv_data(queryinfo_neighbor[0][3:]), "NA",
-                                           clean_tsv_data(queryinfo_neighbor[1][9:])])
-                        elif len(queryinfo_neighbor) == 1:
-                            result.extend([clean_tsv_data(queryinfo_neighbor[0][3:]), "NA", "NA"])
-                        else:
-                            # csv addition columns are GENEID NEIGHBORGENE FUNCTION
-                            result.extend(['NA', 'NA', 'NA'])
+                        query_neighbor_result = self._process_tabix_results(tbquery_neighbors)
+                        result.extend(query_neighbor_result)
                     else:
                         result.extend(['NA', 'NA', 'NA'])
 
                 new_results_file.append(result)
 
-        new_results_file_path = os.path.join(self.shared_folder, 'newSNPdata.tsv')
+            gwasresults.close()
+
         new_results_headers = "SNP\tCHR\tBP\tP\tPOS\tGENEID\tNEIGHBORGENE\tFUNCTION\n"
 
-        with open(new_results_file_path, 'w') as r:
+        if not os.access(gwas_results_file, os.W_OK):
+            shutil.copyfile(gwas_results_file, os.path.join(self.shared_folder, os.path.basename(gwas_results_file)))
+            gwas_results_file = os.path.join(self.shared_folder, os.path.basename(gwas_results_file))
+
+        with open(gwas_results_file, 'w') as r:
             r.write(new_results_headers)
             for line in new_results_file:
                 r.write('\t'.join(line)+'\n')
             r.close()
 
-        return new_results_file
+        return gwas_results_file

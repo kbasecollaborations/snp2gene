@@ -25,8 +25,8 @@ class snp2gene:
     # the latter method is running.
     ######################################### noqa
     VERSION = "0.0.1"
-    GIT_URL = "https://github.com/rroutsong/snp2gene.git"
-    GIT_COMMIT_HASH = "82a4580f7711cfe90aafb50bd6ce335b8c9472f6"
+    GIT_URL = ""
+    GIT_COMMIT_HASH = ""
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -43,7 +43,6 @@ class snp2gene:
         #END_CONSTRUCTOR
         pass
 
-
     def annotate_gwas_results(self, ctx, params):
         """
         annotate_gwas_results:
@@ -54,9 +53,10 @@ class snp2gene:
         outputs:
             TSV file represented by shock/handle ids and
         :param params: instance of type "annotate_gwas_input" -> structure:
-           parameter "gwas_result_file" of type "file_path" (A valid file
-           path), parameter "genome_obj" of type "genome_ref" (KBase style
-           object reference X/Y/Z @id ws KBaseGenomes.Genome), parameter
+           parameter "assoc_obj" of type "association_ref" (KBase style
+           object reference X/Y/Z @id ws KBaseGwasData.Associations),
+           parameter "genome_obj" of type "genome_ref" (KBase style object
+           reference X/Y/Z @id ws KBaseGenomes.Genome), parameter
            "workspace_name" of type "workspace_name" (A string representing a
            workspace name.)
         :returns: instance of type "annotate_gwas_output" -> structure:

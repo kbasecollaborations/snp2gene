@@ -26,7 +26,7 @@ module snp2gene {
     typedef string file_path;
 
     typedef structure {
-        association_ref assoc_obj;
+        file_path gwas_result_file;
         genome_ref genome_obj;
         workspace_name workspace_name;
     } annotate_gwas_input;

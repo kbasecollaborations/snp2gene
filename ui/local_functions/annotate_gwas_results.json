@@ -6,7 +6,7 @@
 		"categories" : ["Annotation", "SNPs"],
 		"input": {
 			"file_types": [],
-			"kb_types": ["KBaseGwasData.Associations", "KBaseGenomes.Genome"]
+			"kb_types": ["KBaseGenomes.Genome"]
 		},
 		"output": {
 			"file_types": [],
