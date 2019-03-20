@@ -5,6 +5,7 @@ import csv
 from pprint import pprint as pp
 from installed_clients.DataFileUtilClient import DataFileUtil
 from installed_clients.GenomeSearchUtilClient import GenomeSearchUtil
+from installed_clients.WorkspaceClient import Workspace
 
 
 def tabix_index(filename, preset="gff", chrom="1", start="4", end="5", skip="0", comment="#"):
@@ -35,6 +36,8 @@ class GFFUtils:
 
         self.dfu = DataFileUtil(self.callback_url)
         self.gsu = GenomeSearchUtil(self.callback_url)
+        # TODO: replace hard coded url with config['workspace_url']
+        self.wsc = Workspace("https://appdev.kbase.us/services/ws")
 
     def _prep_gff(self, gff_file):
         outfile = os.path.join(self.shared_folder, 'GFF', 'out.gff')
@@ -48,7 +51,7 @@ class GFFUtils:
         outfile += '.gz'
         return outfile
 
-    def _construct_gff_from_json(self, json, gff_file_path):
+    def _construct_gff_from_json(self, json, gff_file_path, contig_base_lengths):
         with open(gff_file_path, 'w') as f:
             for feature in json:
                 if feature['feature_type'].strip().upper() == 'GENE':
@@ -58,6 +61,11 @@ class GFFUtils:
 
                     if feature['function']:
                         metainfo += ';FUNCTION='+feature['function']
+
+                    contig_id = str(feature['location'][0]['contig_id'])
+                    start = int(feature['location'][0]['start'])
+
+                    global_pos = int(contig_base_lengths[contig_id]) + start
 
                     """
                     Remove ontology for now
@@ -70,12 +78,14 @@ class GFFUtils:
                         metainfo = metainfo[:-1]  # remove trailing ;
                         metainfo += ')'
                     """
+
                     constructed_gff_line = str(feature['location'][0]['contig_id']) + '\t' + \
                                            'KBase\tgene\t' + \
                                            str(feature['location'][0]['start']) + '\t' + \
                                            str(end) + '\t.\t' + \
                                            str(feature['location'][0]['strand']) + '\t' + \
-                                           metainfo + '\n'
+                                           str(global_pos) + '\t' + \
+                                           str(metainfo) + '\n'
                     f.write(constructed_gff_line)
             f.close()
         if os.path.exists(gff_file_path):
@@ -95,14 +105,34 @@ class GFFUtils:
 
     def annotate_GWAS_results(self, genome_ref, gwas_results_file):
         feature_num = self.gsu.search({'ref': genome_ref})['num_found']
+
+        # get genome features for gff construction
         genome_features = self.gsu.search({
             'ref': genome_ref,
             'limit': feature_num,
             'sort_by': [['feature_id', True]]
         })['features']
 
+        assembly_ref = self.wsc.get_object_subset([{
+            'included': ['/assembly_ref'],
+            'ref': genome_ref
+        }])[0]['data']['assembly_ref']
+
+        # get assembly contigs for base length calculations
+        assembly_contigs = self.wsc.get_object_subset([{
+            'included': ['/contigs'],
+            'ref': assembly_ref
+        }])[0]['data']['contigs']
+
+        contig_base_lengths = {}
+        prev_length = 0
+
+        for contig in assembly_contigs:
+            contig_base_lengths[contig] = prev_length
+            prev_length += assembly_contigs[contig]['length']
+
         gff_file = os.path.join(self.GFF_dir, 'constructed.gff')
-        constructed_gff = self._construct_gff_from_json(genome_features, gff_file)
+        constructed_gff = self._construct_gff_from_json(genome_features, gff_file, contig_base_lengths)
         sorted_gff = self._prep_gff(constructed_gff)
         tabix_index(sorted_gff)
 
