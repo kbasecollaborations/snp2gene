@@ -29,6 +29,8 @@ class GFFUtils:
     def __init__(self, config):
         self.callback_url = config['callback_url']
         self.shared_folder = config['scratch']
+        self.ws_url = config['workspace-url']
+
         self.GFF_dir = os.path.join(self.shared_folder, 'GFF')
 
         if not os.path.isdir(self.GFF_dir):
@@ -36,8 +38,7 @@ class GFFUtils:
 
         self.dfu = DataFileUtil(self.callback_url)
         self.gsu = GenomeSearchUtil(self.callback_url)
-        # TODO: replace hard coded url with config['workspace_url']
-        self.wsc = Workspace("https://appdev.kbase.us/services/ws")
+        self.wsc = Workspace(self.ws_url)
 
     def _prep_gff(self, gff_file):
         outfile = os.path.join(self.shared_folder, 'GFF', 'out.gff')
