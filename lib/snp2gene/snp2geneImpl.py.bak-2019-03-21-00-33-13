@@ -26,7 +26,7 @@ class snp2gene:
     ######################################### noqa
     VERSION = "0.0.1"
     GIT_URL = "https://github.com/rroutsong/snp2gene.git"
-    GIT_COMMIT_HASH = "537c7ff7a8a3158254522a15ea258ee4acf475c1"
+    GIT_COMMIT_HASH = "82a4580f7711cfe90aafb50bd6ce335b8c9472f6"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -48,14 +48,17 @@ class snp2gene:
         """
         annotate_gwas_results:
         inputs:
-            file path to gwas results
+            association object - with gwas results in a tuple
             genome object - with reference to GFF file
+            workspace name
         outputs:
             TSV file represented by shock/handle ids and
         :param params: instance of type "annotate_gwas_input" -> structure:
            parameter "gwas_result_file" of type "file_path" (A valid file
            path), parameter "genome_obj" of type "genome_ref" (KBase style
-           object reference X/Y/Z @id ws KBaseGenomes.Genome)
+           object reference X/Y/Z @id ws KBaseGenomes.Genome), parameter
+           "workspace_name" of type "workspace_name" (A string representing a
+           workspace name.)
         :returns: instance of type "annotate_gwas_output" -> structure:
            parameter "snp_to_gene_list" of type "file_path" (A valid file
            path)

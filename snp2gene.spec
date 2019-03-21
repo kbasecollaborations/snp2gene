@@ -28,7 +28,6 @@ module snp2gene {
     typedef structure {
         file_path gwas_result_file;
         genome_ref genome_obj;
-        workspace_name workspace_name;
     } annotate_gwas_input;
 
     typedef structure {
@@ -38,9 +37,8 @@ module snp2gene {
     /*
         annotate_gwas_results:
             inputs:
-                association object - with gwas results in a tuple
+                file path to gwas results
                 genome object - with reference to GFF file
-                workspace name
 
             outputs:
                 TSV file represented by shock/handle ids and
