@@ -69,7 +69,18 @@ class GFFUtils:
                     try:
                         global_pos = int(contig_base_lengths[contig_id]) + start
                     except KeyError:
-                        global_pos = start
+                        try:
+                            global_pos = int(contig_base_lengths[int(contig_id)] + start
+                        except KeyError:
+                            try:
+                                global_pos = int(contig_base_lengths['Chr'+str(contig_id)]) + start
+                            except KeyError:
+                                try:
+                                    global_pos = int(contig_base_lengths['Chr0' + str(contig_id)]) + start
+                                except KeyError:
+                                    pp(contig_base_lengths)
+                                    pp(contig_id)
+                                    raise KeyError(e)
 
                     """
                     Remove ontology for now
