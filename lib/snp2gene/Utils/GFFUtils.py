@@ -66,7 +66,10 @@ class GFFUtils:
                     contig_id = str(feature['location'][0]['contig_id'])
                     start = int(feature['location'][0]['start'])
 
-                    global_pos = int(contig_base_lengths[contig_id]) + start
+                    try:
+                        global_pos = int(contig_base_lengths[contig_id]) + start
+                    except KeyError:
+                        global_pos = start
 
                     """
                     Remove ontology for now
