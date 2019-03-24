@@ -125,10 +125,13 @@ class GFFUtils:
             'ref': assembly_ref
         }])[0]['data']['contigs']
 
+        contig_ids = list(assembly_contigs.keys())
+        contig_ids.sort()
+
         contig_base_lengths = {}
         prev_length = 0
 
-        for contig in assembly_contigs:
+        for contig in contig_ids:
             contig_base_lengths[contig] = prev_length
             prev_length += assembly_contigs[contig]['length']
 
