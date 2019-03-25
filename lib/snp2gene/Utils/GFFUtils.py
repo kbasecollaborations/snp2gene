@@ -71,7 +71,7 @@ class GFFUtils:
                         global_pos = int(contig_base_lengths[contig_id]) + start
                     except KeyError:
                         try:
-                            global_pos = int(contig_base_lengths[int(contig_id)]) + start
+                            global_pos = int(contig_base_lengths[contig_id.capitalize()]) + start
                         except KeyError:
                             try:
                                 global_pos = int(contig_base_lengths['Chr'+str(contig_id)]) + start
@@ -126,7 +126,7 @@ class GFFUtils:
         genome_features = self.gsu.search({
             'ref': genome_ref,
             'limit': feature_num,
-            'sort_by': [['feature_id', True]]
+            #'sort_by': [['feature_id', True]]
         })['features']
 
         assembly_ref = self.wsc.get_object_subset([{
