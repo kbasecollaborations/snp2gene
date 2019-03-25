@@ -2,6 +2,7 @@
 import os
 import time
 import unittest
+import shutil
 from configparser import ConfigParser
 
 from snp2gene.snp2geneImpl import snp2gene
@@ -63,13 +64,16 @@ class snp2geneTest(unittest.TestCase):
         #
         # Check returned data with
         # self.assertEqual(ret[...], ...) or other unittest methods
+
+        result_file = shutil.copyfile('/kb/module/test/sample_data/snpdata-poplar.tsv', os.path.join(self.scratch, 'snpdata.tsv'))
+
         ret = self.serviceImpl.annotate_gwas_results(self.ctx, {
             'workspace_name': 'rmr:narrative_1552501344207',
             # Populus v3.1
-            #'assoc_obj': '26255/3/1',
-            #'genome_obj': '25404/11/1'
+            'genome_obj': '26587/12/1',
+            'gwas_result_file': os.path.join(self.scratch, 'snpdata.tsv')
 
             # A. Thaliana TAIR10
-            'genome_obj': '25404/2/1',
-            'gwas_result_file': '/kb/module/test/sample_data/sample_gwas_results.tsv'
+            #'genome_obj': '25404/2/1',
+            #'gwas_result_file': '/kb/module/test/sample_data/sample_gwas_results.tsv'
         })

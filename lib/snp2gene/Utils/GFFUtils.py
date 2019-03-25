@@ -66,6 +66,7 @@ class GFFUtils:
                     contig_id = str(feature['location'][0]['contig_id'])
                     start = int(feature['location'][0]['start'])
 
+                    # TODO: Fix Plink reassignment of Chr prefixes
                     try:
                         global_pos = int(contig_base_lengths[contig_id]) + start
                     except KeyError:
@@ -159,21 +160,35 @@ class GFFUtils:
         with open(gwas_results_file, 'r') as gwasresults:
             gwasreader = csv.reader(gwasresults, delimiter='\t')
             next(gwasreader)  # skip headers
+            # TODO: Fix Plink reassignment of Chr prefixes
             for result in gwasreader:
-                tb = tabix_query(sorted_gff, 'Chr'+result[1], int(result[2]), int(result[2]))
+                tb = tabix_query(sorted_gff, 'Chr' + result[1], int(result[2]), int(result[2]))
                 tbquery = next(tb, None) # if there is no first object in generator, set to None
                 if tbquery is not None:
                     query_result = self._process_tabix_results(tbquery)
                     result.extend(query_result)
                 else:
-                    tb_neighbors = tabix_query(sorted_gff, 'Chr' + result[1], int(result[2])-1000,
-                                                int(result[2])+1000)
-                    tbquery_neighbors = next(tb_neighbors, None)
-                    if tbquery_neighbors is not None:
-                        query_neighbor_result = self._process_tabix_results(tbquery_neighbors)
-                        result.extend(query_neighbor_result)
+                    tb2 = tabix_query(sorted_gff, 'Chr0' + result[1], int(result[2]), int(result[2]))
+                    tbquery2 = next(tb2, None)  # if there is no first object in generator, set to None
+                    if tbquery2 is not None:
+                        query_result2 = self._process_tabix_results(tbquery2)
+                        result.extend(query_result2)
                     else:
-                        result.extend(['NA', 'NA', 'NA'])
+                        tb_neighbors = tabix_query(sorted_gff, 'Chr' + result[1], int(result[2])-1000,
+                                                    int(result[2])+1000)
+                        tbquery_neighbors = next(tb_neighbors, None)
+                        if tbquery_neighbors is not None:
+                            query_neighbor_result = self._process_tabix_results(tbquery_neighbors)
+                            result.extend(query_neighbor_result)
+                        else:
+                            tb_neighbors2 = tabix_query(sorted_gff, 'Chr0' + result[1], int(result[2]) - 1000,
+                                                       int(result[2]) + 1000)
+                            tbquery_neighbors2 = next(tb_neighbors2, None)
+                            if tbquery_neighbors2 is not None:
+                                query_neighbor_result2 = self._process_tabix_results(tbquery_neighbors2)
+                                result.extend(query_neighbor_result2)
+                            else:
+                                result.extend(['NA', 'NA', 'NA'])
 
                 new_results_file.append(result)
 
