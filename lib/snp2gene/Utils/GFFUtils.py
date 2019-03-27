@@ -110,7 +110,7 @@ class GFFUtils:
             raise FileNotFoundError('Unable to create GFF file form genome JSON.')
 
     def _process_tabix_results(self, queryresult):
-        queryinfo = queryresult[7].split(';')
+        queryinfo = queryresult[8].split(';')
         if len(queryinfo) >= 2:
             extentsion = [clean_tsv_data(queryinfo[0][3:]), "NA", clean_tsv_data(queryinfo[1][9:])]
         elif len(queryinfo) is 1:
