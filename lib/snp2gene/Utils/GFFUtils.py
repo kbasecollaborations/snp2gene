@@ -2,7 +2,10 @@ import os
 import subprocess
 import shutil
 import csv
+import pandas as pd
 from pprint import pprint as pp
+
+
 from installed_clients.DataFileUtilClient import DataFileUtil
 from installed_clients.GenomeSearchUtilClient import GenomeSearchUtil
 from installed_clients.WorkspaceClient import Workspace
@@ -119,6 +122,28 @@ class GFFUtils:
             extentsion = ['NA', 'NA', 'NA']
         return extentsion
 
+    def find_geneid(self, row):
+        tb = tabix_query(self.sorted_gff, row["CHR"], int(row["POS"]), int(row["POS"]))
+        tbresult = next(tb, None)
+
+        if tbresult is None:
+            # do neighbor checking
+            if int(row["POS"]) < 500:
+                nstart = 0
+            else:
+                nstart = int(row["POS"]) - 500
+            neigh_tb = tabix_query(self.sorted_gff, row["CHR"], nstart, int(row["POS"])+500)
+            neigh_result = next(neigh_tb, None)
+
+            if neigh_result is None:
+                return pd.Series(['NA', 'NA', 'NA'], index=['GENEID','NEIGHBORGENE','FUNCTION'])
+            else:
+                nq = self._process_tabix_results(neigh_result)
+                return pd.Series(nq, index=['GENEID', 'NEIGHBORGENE', 'FUNCTION'])
+        else:
+            q = self._process_tabix_results(tbresult)
+            return pd.Series(q, index=['GENEID','NEIGHBORGENE','FUNCTION'])
+
     def annotate_GWAS_results(self, genome_ref, gwas_results_file):
         feature_num = self.gsu.search({'ref': genome_ref})['num_found']
 
@@ -152,58 +177,17 @@ class GFFUtils:
 
         gff_file = os.path.join(self.GFF_dir, 'constructed.gff')
         constructed_gff = self._construct_gff_from_json(genome_features, gff_file, contig_base_lengths)
-        sorted_gff = self._prep_gff(constructed_gff)
-        tabix_index(sorted_gff)
+        self.sorted_gff = self._prep_gff(constructed_gff)
+        tabix_index(self.sorted_gff)
 
-        new_results_file = []
+        gwas_results = pd.read_csv(gwas_results_file, sep='\t')
 
-        with open(gwas_results_file, 'r') as gwasresults:
-            gwasreader = csv.reader(gwasresults, delimiter='\t')
-            next(gwasreader)  # skip headers
-            # TODO: Fix Plink reassignment of Chr prefixes
-            for result in gwasreader:
-                tb = tabix_query(sorted_gff, 'Chr' + result[1], int(result[2]), int(result[2]))
-                tbquery = next(tb, None) # if there is no first object in generator, set to None
-                if tbquery is not None:
-                    query_result = self._process_tabix_results(tbquery)
-                    result.extend(query_result)
-                else:
-                    tb2 = tabix_query(sorted_gff, 'Chr0' + result[1], int(result[2]), int(result[2]))
-                    tbquery2 = next(tb2, None)  # if there is no first object in generator, set to None
-                    if tbquery2 is not None:
-                        query_result2 = self._process_tabix_results(tbquery2)
-                        result.extend(query_result2)
-                    else:
-                        tb_neighbors = tabix_query(sorted_gff, 'Chr' + result[1], int(result[2])-1000,
-                                                    int(result[2])+1000)
-                        tbquery_neighbors = next(tb_neighbors, None)
-                        if tbquery_neighbors is not None:
-                            query_neighbor_result = self._process_tabix_results(tbquery_neighbors)
-                            result.extend(query_neighbor_result)
-                        else:
-                            tb_neighbors2 = tabix_query(sorted_gff, 'Chr0' + result[1], int(result[2]) - 1000,
-                                                       int(result[2]) + 1000)
-                            tbquery_neighbors2 = next(tb_neighbors2, None)
-                            if tbquery_neighbors2 is not None:
-                                query_neighbor_result2 = self._process_tabix_results(tbquery_neighbors2)
-                                result.extend(query_neighbor_result2)
-                            else:
-                                result.extend(['NA', 'NA', 'NA'])
+        gwas_results[['GENEID','NEIGHBORGENE','FUNCTION']] = \
+            gwas_results.apply(self.find_geneid, axis=1)
 
-                new_results_file.append(result)
+        new_results_path = os.path.abspath(os.path.join(gwas_results_file, '..'))
+        new_results_path = os.path.join(new_results_path, 'final_results.txt')
 
-            gwasresults.close()
+        gwas_results.to_csv(path_or_buf=new_results_path, sep='\t', index=False)
 
-        new_results_headers = "SNP\tCHR\tBP\tP\tPOS\tGENEID\tNEIGHBORGENE\tFUNCTION\n"
-
-        if not os.access(gwas_results_file, os.W_OK):
-            shutil.copyfile(gwas_results_file, os.path.join(self.shared_folder, os.path.basename(gwas_results_file)))
-            gwas_results_file = os.path.join(self.shared_folder, os.path.basename(gwas_results_file))
-
-        with open(gwas_results_file, 'w') as r:
-            r.write(new_results_headers)
-            for line in new_results_file:
-                r.write('\t'.join(line)+'\n')
-            r.close()
-
-        return gwas_results_file
+        return new_results_path

@@ -1,5 +1,5 @@
 FROM kbase/sdkbase2:python
-MAINTAINER KBase Developer
+MAINTAINER UT Plant Sciences
 # -----------------------------------------
 # In this section, you can install any system dependencies required
 # to run your App.  For instance, you could place an apt-get update or
@@ -13,6 +13,7 @@ RUN apt-get update \
 	&& apt-get install -y vim
 
 RUN pip install --upgrade pip \
+    && pip install pandas \
 	&& pip install pytabix
 
 # -----------------------------------------
