@@ -115,34 +115,45 @@ class GFFUtils:
     def _process_tabix_results(self, queryresult):
         queryinfo = queryresult[8].split(';')
         if len(queryinfo) >= 2:
-            extentsion = [clean_tsv_data(queryinfo[0][3:]), "NA", clean_tsv_data(queryinfo[1][9:])]
+            extension = [clean_tsv_data(queryinfo[0][3:]), "NA", clean_tsv_data(queryinfo[1][9:])]
         elif len(queryinfo) is 1:
-            extentsion = [clean_tsv_data(queryinfo[0][3:]), "NA", "NA"]
+            extension = [clean_tsv_data(queryinfo[0][3:]), "NA", "NA"]
         else:
-            extentsion = ['NA', 'NA', 'NA']
-        return extentsion
+            extension = ['NA', 'NA', 'NA']
+        return extension
 
-    def find_geneid(self, row):
+    def find_gene_info(self, row):
         tb = tabix_query(self.sorted_gff, row["CHR"], int(row["POS"]), int(row["POS"]))
         tbresult = next(tb, None)
-
         if tbresult is None:
-            # do neighbor checking
-            if int(row["POS"]) < 500:
-                nstart = 0
-            else:
-                nstart = int(row["POS"]) - 500
-            neigh_tb = tabix_query(self.sorted_gff, row["CHR"], nstart, int(row["POS"])+500)
-            neigh_result = next(neigh_tb, None)
+            tb2 = tabix_query(self.sorted_gff, 'chr' + row["CHR"], int(row["POS"]), int(row["POS"]))
+            tbresult2 = next(tb2, None)
+            if tbresult2 is None:
+                tb3 = tabix_query(self.sorted_gff, 'chr0' + row["CHR"], int(row["POS"]), int(row["POS"]))
+                tbresult3 = next(tb3, None)
+                if tbresult3 is None:
+                    if int(row["POS"]) < 500:
+                        nstart = 0
+                    else:
+                        nstart = int(row["POS"]) - 500
 
-            if neigh_result is None:
-                return pd.Series(['NA', 'NA', 'NA'], index=['GENEID','NEIGHBORGENE','FUNCTION'])
+                    neigh_tb = tabix_query(self.sorted_gff, row["CHR"], nstart, int(row["POS"]) + 500)
+                    neigh_result = next(neigh_tb, None)
+
+                    if neigh_result is None:
+                        return pd.Series(['NA', 'NA', 'NA'], index=['GENEID', 'NEIGHBORGENE', 'FUNCTION'])
+                    else:
+                        nq = self._process_tabix_results(neigh_result)
+                        return pd.Series([nq[1], nq[0], nq[2]], index=['GENEID', 'NEIGHBORGENE', 'FUNCTION'])
+                else:
+                    q3 = self._process_tabix_results(tbresult3)
+                    return pd.Series(q3, index=['GENEID', 'NEIGHBORGENE', 'FUNCTION'])
             else:
-                nq = self._process_tabix_results(neigh_result)
-                return pd.Series(nq, index=['GENEID', 'NEIGHBORGENE', 'FUNCTION'])
+                q2 = self._process_tabix_results(tbresult2)
+                return pd.Series(q2, index=['GENEID', 'NEIGHBORGENE', 'FUNCTION'])
         else:
             q = self._process_tabix_results(tbresult)
-            return pd.Series(q, index=['GENEID','NEIGHBORGENE','FUNCTION'])
+            return pd.Series(q, index=['GENEID', 'NEIGHBORGENE', 'FUNCTION'])
 
     def annotate_GWAS_results(self, genome_ref, gwas_results_file):
         feature_num = self.gsu.search({'ref': genome_ref})['num_found']
@@ -182,8 +193,8 @@ class GFFUtils:
 
         gwas_results = pd.read_csv(gwas_results_file, sep='\t')
 
-        gwas_results[['GENEID','NEIGHBORGENE','FUNCTION']] = \
-            gwas_results.apply(self.find_geneid, axis=1)
+        gwas_results[['GENEID', 'NEIGHBORGENE', 'FUNCTION']] = \
+            gwas_results.apply(self.find_gene_info, axis=1)
 
         new_results_path = os.path.abspath(os.path.join(gwas_results_file, '..'))
         new_results_path = os.path.join(new_results_path, 'final_results.txt')
