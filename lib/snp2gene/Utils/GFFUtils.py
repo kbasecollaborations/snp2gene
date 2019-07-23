@@ -46,13 +46,17 @@ class GFFUtils:
     def _prep_gff(self, gff_file):
         outfile = os.path.join(self.shared_folder, 'GFF', 'out.gff')
         sortcmd = f'(grep ^"#"  {gff_file}; grep -v ^"#" {gff_file} | sort -k1,1 -k4,4n)'
+
         with open(outfile, 'w') as o:
             p = subprocess.Popen(sortcmd, shell=True, stdout=o)
-            p.wait()
+            out, err = p.communicate()
             o.close()
+
         bgzip = subprocess.Popen(['bgzip', 'out.gff'], cwd=os.path.join(self.shared_folder, 'GFF'))
-        bgzip.wait()
+        out2, err2 = bgzip.communicate()
+
         outfile += '.gz'
+
         return outfile
 
     def _construct_gff_from_json(self, json, gff_file_path, contig_base_lengths):
