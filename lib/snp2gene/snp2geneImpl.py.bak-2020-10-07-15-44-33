@@ -4,10 +4,8 @@ import logging
 import os
 
 from installed_clients.KBaseReportClient import KBaseReport
-from installed_clients.DataFileUtilClient import DataFileUtil
-from installed_clients.WorkspaceClient import Workspace
+
 from snp2gene.Utils.GFFUtils import GFFUtils
-from snp2gene.Utils.GFFUtils2 import GFFUtils2
 #END_HEADER
 
 
@@ -27,8 +25,8 @@ class snp2gene:
     # the latter method is running.
     ######################################### noqa
     VERSION = "0.0.1"
-    GIT_URL = "git@github.com:kbasecollaborations/snp2gene.git"
-    GIT_COMMIT_HASH = "8dd593e96c4b37fcf91a719181389e1b04c0bb4a"
+    GIT_URL = "https://github.com/rroutsong/snp2gene.git"
+    GIT_COMMIT_HASH = "537c7ff7a8a3158254522a15ea258ee4acf475c1"
 
     #BEGIN_CLASS_HEADER
     #END_CLASS_HEADER
@@ -40,8 +38,6 @@ class snp2gene:
         self.config = config
         self.config['callback_url'] = os.environ['SDK_CALLBACK_URL']
         self.shared_folder = config['scratch']
-        self.ws_url = config['workspace-url'] 
-        self.wsc = Workspace(self.ws_url)
         logging.basicConfig(format='%(created)s %(levelname)s: %(message)s',
                             level=logging.INFO)
         #END_CONSTRUCTOR
@@ -79,56 +75,6 @@ class snp2gene:
             raise ValueError('Method annotate_gwas_results return value ' +
                              'output is not type dict as required.')
         # return the results
-        return [output]
-
-    def annotate_gwas_results_app(self, ctx, params):
-        """
-        :param params: instance of type "annotate_gwas_app_input" ->
-           structure: parameter "associations" of list of type
-           "association_ref" (KBase style object reference X/Y/Z @id ws
-           KBaseGwasData.Associations), parameter "p_value" of String,
-           parameter "prefix" of String
-        :returns: instance of type "annotate_gwas_app_output" -> structure:
-           parameter "report_name" of String, parameter "report_ref" of
-           String, parameter "featureset_obj" of type "featureset_ref" (KBase
-           style object reference X/Y/Z @id ws KBaseCollections.FeatureSet)
-        """
-        # ctx is the context object
-        # return variables are: output
-        #BEGIN annotate_gwas_results_app
-        # return the results
-        print (params)
-        #genome_ref = "47506/4/1"
-        params["gwas_result_file"] = "xmx"
-        association_ref = params["associations"][0]
-
-        variation_ref = self.wsc.get_object_subset([{
-                'included': ['/variation_id'],
-                'ref': association_ref
-            }])[0]['data']['variation_id']
-
-        genome_ref = self.wsc.get_object_subset([{
-                'included': ['/genome_ref'],
-                'ref': variation_ref
-            }])[0]['data']['genome_ref']
-
-        featureset_obj  = GFFUtils2(self.config).annotate_GWAS_results(genome_ref, association_ref, params['workspace_name'], params['prefix'])
-        # Build the new gff before doing anything
-        
-        # Download the workspace object for association one at a time
-        # Filter SNPs for p-value, if no snps shows up, append this to warnings
-        # Build the table structure needed for snp2gene
-        # Run snp2gene algorithm and get final list.txt
-        # Save as featureset. Find how to save featureset from genelist
-
-        output = {"a":"a"}
-
-        #END annotate_gwas_results_app
-
-        # At some point might do deeper type checking...
-        if not isinstance(output, dict):
-            raise ValueError('Method annotate_gwas_results_app return value ' +
-                             'output is not type dict as required.')
         return [output]
     def status(self, ctx):
         #BEGIN_STATUS

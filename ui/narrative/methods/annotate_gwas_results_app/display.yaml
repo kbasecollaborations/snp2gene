@@ -1,0 +1,56 @@
+#
+# define display information
+#
+name: Get Genes from GWAS Associations
+
+
+tooltip: |
+    Get genes close to selected variations from GWAS result
+screenshots: []
+
+icon: icon.png
+
+#
+# define a set of similar apps that might be useful to the user
+#
+suggestions:
+    apps:
+        related:
+            []
+        next:
+            []
+    methods:
+        related:
+            []
+        next:
+            []    
+
+#
+# Configure the display and description of parameters
+#
+parameters :
+    associations :
+        ui-name : |
+            GWAS associations
+        short-hint : |
+            Input GWAS association result
+        long-hint  : |
+            Input Genome wide association (GWAS) result
+    p_value :
+        ui-name : |
+            p-value cutoff
+        short-hint : |
+            p-value cutoff 
+        long-hint  : |
+            p-value cutoff 
+    prefix :
+        ui-name : |
+            Prefix for output genelist
+        short-hint : |
+            Prefix for output genelist
+        long-hint  : |
+            Prefix for output genelist 
+
+
+description : |
+    <p>App to get genes from gwas results</p>

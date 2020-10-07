@@ -1,0 +1,91 @@
+{
+    "ver": "0.0.1",
+    "authors": [
+        "pranjan77"
+    ],
+    "contact": "",
+    "categories": ["active"],
+    "widgets": {
+        "input": null,
+        "output": null
+    },
+    "parameters": [ 
+        {
+            "id": "associations",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": true,
+            "default_values": [ "" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": ["KBaseGwasData.Associations" ]
+            }
+        },
+        {
+            "id": "p_value",
+            "optional": false,
+            "advanced": false,
+            "allow_multiple": false,
+            "default_values": [ "1E-5" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": [ ]
+            }
+        },
+        {
+            "id": "prefix",
+            "optional": false,
+            "advanced": true,
+            "allow_multiple": false,
+            "default_values": [ "genelist_" ],
+            "field_type": "text",
+            "text_options": {
+                "valid_ws_types": [ ]
+            }
+        }
+        
+
+        
+    ],
+    "behavior": {
+        "service-mapping": {
+            "url": "",
+            "name": "snp2gene",
+            "method": "annotate_gwas_results_app",
+            "input_mapping": [
+                {
+                    "narrative_system_variable": "workspace",
+                    "target_property": "workspace_name"
+                },
+                {
+                    "input_parameter": "associations",
+                    "target_property": "associations",
+                    "target_type_transform": "resolved-ref"
+                },
+                {
+                    "input_parameter": "p_value",
+                    "target_property": "p_value"
+                },
+                {
+                    "input_parameter": "prefix",
+                    "target_property": "prefix"
+                }
+                
+            ],
+            "output_mapping": [
+                {
+                    "service_method_output_path": [0,"report_name"],
+                    "target_property": "report_name"
+                },{
+                    "service_method_output_path": [0,"report_ref"],
+                    "target_property": "report_ref"
+                },
+                {
+                    "narrative_system_variable": "workspace",
+                    "target_property": "workspace_name"
+                }
+            ]
+        }
+    },
+    "job_id_output_field": "docker"
+}

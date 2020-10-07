@@ -54,6 +54,9 @@ class snp2geneTest(unittest.TestCase):
             print('Test workspace was deleted')
 
     # NOTE: According to Python unittest naming rules test method names should start from 'test'. # noqa
+
+
+    @unittest.skip
     def test_your_method(self):
         # Prepare test objects in workspace if needed using
         # self.getWsClient().save_objects({'workspace': self.getWsName(),
@@ -78,3 +81,14 @@ class snp2geneTest(unittest.TestCase):
 
             'gwas_result_file': result_file
         })
+
+    def test_annotated_gwas_app(self):
+            params = {
+                "workspace_name":"pranjan77:narrative_1547838509402",
+                "associations": ["23178/5/1", "23178/5/1"],
+                "p_value": "1E-5",
+                "prefix": "genelist_"
+            }
+
+            ret = self.serviceImpl.annotate_gwas_results_app(self.ctx, params)
+           

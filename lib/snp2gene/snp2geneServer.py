@@ -342,6 +342,10 @@ class Application(object):
                              name='snp2gene.annotate_gwas_results',
                              types=[dict])
         self.method_authentication['snp2gene.annotate_gwas_results'] = 'required'  # noqa
+        self.rpc_service.add(impl_snp2gene.annotate_gwas_results_app,
+                             name='snp2gene.annotate_gwas_results_app',
+                             types=[dict])
+        self.method_authentication['snp2gene.annotate_gwas_results_app'] = 'required'  # noqa
         self.rpc_service.add(impl_snp2gene.status,
                              name='snp2gene.status',
                              types=[dict])
