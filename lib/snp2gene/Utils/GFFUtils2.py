@@ -31,21 +31,16 @@ def clean_tsv_data(data):
 class GFFUtils2:
     def __init__(self, config):
         self.callback_url = config['callback_url']
-        #self.shared_folder = config['scratch']
-        self.shared_folder = "/kb/module/work"
+        self.shared_folder = config['scratch']
+        #self.shared_folder = "/kb/module/work"
         self.ws_url = config['workspace-url']
-
-        self.GFF_dir = os.path.join(self.shared_folder, 'GFF')
-
-        if not os.path.isdir(self.GFF_dir):
-            os.mkdir(self.GFF_dir)
 
         self.dfu = DataFileUtil(self.callback_url)
         self.gsu = GenomeSearchUtil(self.callback_url)
         self.wsc = Workspace(self.ws_url)
 
     def _prep_gff(self, gff_file):
-        outfile = os.path.join(self.shared_folder, 'GFF', 'out.gff')
+        outfile = os.path.join(self.genome_dir, 'out.gff')
         sortcmd = f'(grep ^"#"  {gff_file}; grep -v ^"#" {gff_file} | sort -k1,1 -k4,4n)'
 
         with open(outfile, 'w') as o:
@@ -53,7 +48,7 @@ class GFFUtils2:
             out, err = p.communicate()
             o.close()
 
-        bgzip = subprocess.Popen(['bgzip', 'out.gff'], cwd=os.path.join(self.shared_folder, 'GFF'))
+        bgzip = subprocess.Popen(['bgzip', 'out.gff'], cwd=self.genome_dir)
         out2, err2 = bgzip.communicate()
 
         outfile += '.gz'
@@ -160,18 +155,20 @@ class GFFUtils2:
             q = self._process_tabix_results(tbresult)
             return pd.Series(q, index=['GENEID', 'NEIGHBORGENE', 'FUNCTION'])
 
-    def get_gwas_result_file(self, association_ref, association_name):
+    def get_gwas_result_file(self, association_ref, association_name, p_value):
         #association_obj = self.dfu.get_objects({'object_refs': [association_ref]})['data'][0]['data']['data']
         association_obj = self.dfu.get_objects({'object_refs': [association_ref]})['data'][0]
         association_results = association_obj['data']["association_details"][0]["association_results"]
         result = "CHR\tSNP\tPOS\tP\tBP\n"
         for variation in association_results:
+            if (float(variation[3]) > float(p_value)):
+                continue
             result += str(variation[0]) + "\t" 
             result +=  str(variation[1]) + "\t" 
             result +=  str(variation[2]) + "\t" 
             result +=   str(variation[3]) + "\t"
             result +=   str(variation[2]) + "\n"
-        filepath = os.path.join(self.shared_folder, 'GFF', association_name)
+        filepath = os.path.join(self.genome_dir, association_name)
         with open(filepath, "w") as file1: 
             file1.write(result) 
         return (filepath)
@@ -198,7 +195,6 @@ class GFFUtils2:
       featureset['description'] = description
       featureset['element_ordering'] = element_ordering
       featureset['elements'] = elements
-      print (featureset)
       ws_id = self.dfu.ws_name_to_id(workspace_name)
       featureset_obj_name = prefix + str(association_name)
 
@@ -211,11 +207,15 @@ class GFFUtils2:
 
 
    
-    def annotate_GWAS_results(self, genome_ref, association_ref, workspace_name, prefix):
+    def annotate_GWAS_results(self, genome_ref, association_ref, workspace_name, prefix, p_value):
          
         #TODO: Send outfile to prep gff function inseted of hardcord
         #TODO: Removed hard coded stuff and create new directory for each test function
-        sorted_gff_path = os.path.join(self.shared_folder, 'GFF', 'out.gff.gz')
+        self.genome_dir_name = "_".join(genome_ref.split("/"))
+        self.genome_dir = os.path.join(self.shared_folder, self.genome_dir_name)
+        if not os.path.isdir(self.genome_dir):
+            os.mkdir(self.genome_dir)
+        sorted_gff_path = os.path.join(self.genome_dir, 'out.gff.gz')
         self.sorted_gff = sorted_gff_path
 
         if  not os.path.exists(sorted_gff_path):
@@ -248,7 +248,7 @@ class GFFUtils2:
                 contig_base_lengths[contig] = prev_length
                 prev_length += assembly_contigs[contig]['length']
 
-            gff_file = os.path.join(self.GFF_dir, 'constructed.gff')
+            gff_file = os.path.join(self.genome_dir, 'constructed.gff')
             constructed_gff = self._construct_gff_from_json(genome_features, gff_file, contig_base_lengths)
             self.sorted_gff = self._prep_gff(constructed_gff)
             tabix_index(self.sorted_gff)
@@ -257,7 +257,7 @@ class GFFUtils2:
         association_name =obj_info["infos"][0][1]
 
 
-        gwas_results_file = self.get_gwas_result_file(association_ref, association_name)
+        gwas_results_file = self.get_gwas_result_file(association_ref, association_name, p_value)
 
         gwas_results = pd.read_csv(gwas_results_file, sep='\t')
 
@@ -265,7 +265,8 @@ class GFFUtils2:
            gwas_results.apply(self.find_gene_info, axis=1)
 
         new_results_path = os.path.abspath(os.path.join(gwas_results_file, '..'))
-        new_results_path = os.path.join(new_results_path, 'final_results.txt')
+        fname = 'final_' +  association_name
+        new_results_path = os.path.join(new_results_path, fname )
         gwas_results.to_csv(path_or_buf=new_results_path, sep='\t', index=False)
         description = "Genelist for GWAS results of trait " + association_name
          

@@ -2,12 +2,13 @@
 #BEGIN_HEADER
 import logging
 import os
-
+import uuid
 from installed_clients.KBaseReportClient import KBaseReport
 from installed_clients.DataFileUtilClient import DataFileUtil
 from installed_clients.WorkspaceClient import Workspace
 from snp2gene.Utils.GFFUtils import GFFUtils
 from snp2gene.Utils.GFFUtils2 import GFFUtils2
+from installed_clients.KBaseReportClient import KBaseReport
 #END_HEADER
 
 
@@ -39,9 +40,11 @@ class snp2gene:
         #BEGIN_CONSTRUCTOR
         self.config = config
         self.config['callback_url'] = os.environ['SDK_CALLBACK_URL']
+        callback_url = self.config['callback_url']
         self.shared_folder = config['scratch']
         self.ws_url = config['workspace-url'] 
         self.wsc = Workspace(self.ws_url)
+        self.kbr = KBaseReport(callback_url)
         logging.basicConfig(format='%(created)s %(levelname)s: %(message)s',
                             level=logging.INFO)
         #END_CONSTRUCTOR
@@ -98,21 +101,24 @@ class snp2gene:
         #BEGIN annotate_gwas_results_app
         # return the results
         print (params)
+        #TODO: Hanlde cases where there are no significant SNPs
         #genome_ref = "47506/4/1"
-        params["gwas_result_file"] = "xmx"
-        association_ref = params["associations"][0]
+        objects_created = []
+        for association_ref in params['associations']:
 
-        variation_ref = self.wsc.get_object_subset([{
-                'included': ['/variation_id'],
-                'ref': association_ref
-            }])[0]['data']['variation_id']
+            variation_ref = self.wsc.get_object_subset([{
+                    'included': ['/variation_id'],
+                    'ref': association_ref
+                }])[0]['data']['variation_id']
 
-        genome_ref = self.wsc.get_object_subset([{
-                'included': ['/genome_ref'],
-                'ref': variation_ref
-            }])[0]['data']['genome_ref']
+            genome_ref = self.wsc.get_object_subset([{
+                    'included': ['/genome_ref'],
+                    'ref': variation_ref
+                }])[0]['data']['genome_ref']
 
-        featureset_obj  = GFFUtils2(self.config).annotate_GWAS_results(genome_ref, association_ref, params['workspace_name'], params['prefix'])
+            featureset_obj  = GFFUtils2(self.config).annotate_GWAS_results(genome_ref, association_ref, params['workspace_name'], params['prefix'], params['p_value'])
+            objects_created.append({'ref': featureset_obj,
+                                        'description': 'FeatureSet'})
         # Build the new gff before doing anything
         
         # Download the workspace object for association one at a time
@@ -120,8 +126,17 @@ class snp2gene:
         # Build the table structure needed for snp2gene
         # Run snp2gene algorithm and get final list.txt
         # Save as featureset. Find how to save featureset from genelist
-
-        output = {"a":"a"}
+        
+        report_info = self.kbr.create_extended_report({
+                'message': ' ',
+                'objects_created': objects_created,
+                'report_object_name': 'annotate_gwas_results_app_' + str(uuid.uuid4()),
+                'workspace_name': params['workspace_name']
+                })
+        output = dict()
+        output['report_name'] = report_info['name']
+        output['report_ref'] = report_info['ref']
+        print (output)
 
         #END annotate_gwas_results_app
 

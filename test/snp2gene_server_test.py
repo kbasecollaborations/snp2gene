@@ -84,9 +84,9 @@ class snp2geneTest(unittest.TestCase):
 
     def test_annotated_gwas_app(self):
             params = {
-                "workspace_name":"pranjan77:narrative_1547838509402",
-                "associations": ["23178/5/1", "23178/5/1"],
-                "p_value": "1E-5",
+                "workspace_name":"pranjan77:narrative_1600765146921",
+                "associations": ["47506/38/1", "47506/35/3"],
+                "p_value": "0.05",
                 "prefix": "genelist_"
             }
 
